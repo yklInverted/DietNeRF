@@ -17,6 +17,9 @@ half_res = True
 max_train_views = 8
 i_log_raw_hist = 50
 i_video = 6250
+N_iters = 50000
+i_testset = 2000
+
 save_splits = True
 checkpoint_rendering = True
 ## Computational options relevant for rendering

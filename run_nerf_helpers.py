@@ -192,7 +192,7 @@ class NeRF(nn.Module):
         self.alpha_linear.bias.data = torch.from_numpy(np.transpose(weights[idx_alpha_linear+1]))
 
 
-_printed_get_rays = False
+_printed_get_rays = True
 
 # Ray helpers
 def get_rays(H, W, focal, c2w, nH=None, nW=None, jitter=False):
@@ -219,7 +219,7 @@ def get_rays(H, W, focal, c2w, nH=None, nW=None, jitter=False):
         pts_H = torch.arange(start=start_H, end=end_H+1, step=dH)
 
         global _printed_get_rays
-        if not _printed_get_rays:
+        if False:       #not _printed_get_rays:
             print('get_rays H', H)
             print('get_rays W', W)
             print('get_rays nH nW', nH, nW)

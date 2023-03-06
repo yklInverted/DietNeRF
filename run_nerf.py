@@ -195,7 +195,7 @@ def create_nerf(args):
                  input_ch=input_ch, output_ch=output_ch, skips=skips,
                  input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs)
     model = nn.DataParallel(model).to(device)
-    wandb.watch(model)
+    #wandb.watch(model)
     grad_vars = list(model.parameters())
 
     model_fine = None
@@ -565,9 +565,9 @@ def config_parser():
                         help='learning rate')
     parser.add_argument("--lrate_decay", type=int, default=250, 
                         help='exponential learning rate decay (in 1000 steps)')
-    parser.add_argument("--chunk", type=int, default=1024*32, 
+    parser.add_argument("--chunk", type=int, default=1024*2, 
                         help='number of rays processed in parallel, decrease if running out of memory')
-    parser.add_argument("--netchunk_per_gpu", type=int, default=1024*64*4, 
+    parser.add_argument("--netchunk_per_gpu", type=int, default=1024*8*2, 
                         help='number of pts sent through network in parallel, decrease if running out of memory')
     parser.add_argument("--no_batching", action='store_true', 
                         help='only take random rays from 1 image at a time')
@@ -713,17 +713,17 @@ def train():
     parser = config_parser()
     args = parser.parse_args()
 
-    wandb.init(project=args.wandb_project, entity=args.wandb_entity)
-    wandb.run.name = args.expname
-    wandb.run.save()
-    wandb.config.update(args)
+    #wandb.init(project=args.wandb_project, entity=args.wandb_entity)
+    #wandb.run.name = args.expname
+    #wandb.run.save()
+    #wandb.config.update(args)
 
     # Re-seed
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
     # Multi-GPU
-    args.n_gpus = torch.cuda.device_count()
+    args.n_gpus = 1#torch.cuda.device_count()
     print(f"Using {args.n_gpus} GPU(s).")
 
     # Load data
@@ -886,7 +886,7 @@ def train():
                     print(args.expname, f'test metrics ({metricspath}):', test_metrics)
                     test_metrics['args'] = vars(args)
                     json.dump(test_metrics, test_metrics_f)
-                    wandb.save(metricspath)
+                    #wandb.save(metricspath)
 
             return
 
@@ -998,7 +998,7 @@ def train():
                     pose = pose_spherical_uniform(args.render_theta_range, args.render_phi_range, args.render_radius_range)
                     pose = pose[:3, :4]
 
-                print('Sampled pose:', Rotation.from_matrix(pose[:, :3].cpu()).as_rotvec(), 'origin:', pose[:, 3])
+                #print('Sampled pose:', Rotation.from_matrix(pose[:, :3].cpu()).as_rotvec(), 'origin:', pose[:, 3])
 
                 if args.render_poses_translation_jitter_sigma > 0:
                     pose[:, -1] = pose[:, -1] + torch.randn(3, device=pose.device) * args.render_poses_translation_jitter_sigma
@@ -1109,7 +1109,7 @@ def train():
                 'optimizer_state_dict': optimizer.state_dict(),
             }, path)
             print('Saved checkpoints at', path)
-            wandb.save(path)
+            #wandb.save(path)
             print('Uploading checkpoints at', path)
 
         if i%args.i_video==0 and i > 0:
@@ -1120,8 +1120,8 @@ def train():
                 moviebase = os.path.join(basedir, expname, '{}_spiral_{:06d}_'.format(expname, i))
                 imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
                 imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
-                metrics["render_path/rgb_video"] = wandb.Video(moviebase + 'rgb.mp4')
-                metrics["render_path/disp_video"] = wandb.Video(moviebase + 'disp.mp4')
+                #metrics["render_path/rgb_video"] = wandb.Video(moviebase + 'rgb.mp4')
+                #metrics["render_path/disp_video"] = wandb.Video(moviebase + 'disp.mp4')
 
         if i%args.i_testset==0 and i > 0:
             testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
@@ -1181,8 +1181,8 @@ def train():
                     metrics['z_std'] = wandb.Image(extras['z_std'].cpu().numpy()[np.newaxis,...,np.newaxis])
 
         if metrics:
-            wandb.log(metrics, step=i)
-
+            #wandb.log(metrics, step=i)
+            pass
         global_step += 1
 
 
