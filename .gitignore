@@ -1,0 +1,14 @@
+**/.ipynb_checkpoints
+**/__pycache__
+*.png
+*.mp4
+*.npy
+*.npz
+*.dae
+data/*
+logs/*
+.vscode/
+wandb/
+configs/nerf*
+configs/simplified_nerf*
+configs/unseen_side*
