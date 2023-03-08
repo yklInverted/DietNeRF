@@ -18,7 +18,8 @@ import wandb
 
 import geometry
 from load_llff import load_llff_data
-from load_deepvoxels import load_dv_data
+from load_dtu import load_dtu_data
+#from load_deepvoxels import load_dv_data
 from load_blender import load_blender_data, pose_spherical_uniform
 from run_nerf_helpers import *
 
@@ -735,6 +736,7 @@ def train():
         hwf = poses[0,:3,-1]
         poses = poses[:,:3,:4]
         print('Loaded llff', images.shape, render_poses.shape, hwf, args.datadir)
+        '''
         if not isinstance(i_test, list):
             i_test = [i_test]
 
@@ -745,7 +747,14 @@ def train():
         i_val = i_test
         i_train = np.array([i for i in np.arange(int(images.shape[0])) if
                         (i not in i_test and i not in i_val)])
-
+        '''
+        
+        pairs = np.load('./configs/pairs.npy',allow_pickle = True).item()
+        scene = os.path.basename(args.datadir)
+        i_train = pairs[f'{scene}_train'][:]
+        i_val = pairs[f'{scene}_val']
+        i_test = pairs[f'{scene}_test']
+        
         print('DEFINING BOUNDS')
         if args.no_ndc:
             near = np.ndarray.min(bds) * .9
@@ -757,7 +766,7 @@ def train():
         print('NEAR FAR', near, far)
 
     elif args.dataset_type == 'blender':
-        images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip, num_render_poses=args.num_render_poses)
+        images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip)
         print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
         i_train, i_val, i_test = i_split
 
@@ -770,7 +779,22 @@ def train():
             images = images[...,:3]
 
     elif args.dataset_type == 'deepvoxels':
-
+        
+        images, poses, bds, _, hwf, depths = load_dtu_data(args.datadir)
+        masks = depths>0
+        #images, poses, hwf, masks = load_dtu_data(args.datadir, args.train_scene, args.maskdir)
+        #ipdb.set_trace()
+        pairs = np.load('./configs/pairs.npy',allow_pickle = True).item()
+        i_train = pairs[f'dtu_train']
+        i_val = pairs[f'dtu_val']
+        i_test = pairs[f'dtu_test']
+        
+        render_poses = poses
+        print('Loaded DTU', images.shape, poses.shape, hwf, args.datadir)
+        near = bds.min()#0.1
+        far = bds.max()#5.0
+        
+        '''
         images, poses, render_poses, hwf, i_split = load_dv_data(scene=args.shape,
                                                                  basedir=args.datadir,
                                                                  testskip=args.testskip)
@@ -781,6 +805,7 @@ def train():
         hemi_R = np.mean(np.linalg.norm(poses[:,:3,-1], axis=-1))
         near = hemi_R-1.
         far = hemi_R+1.
+        '''
 
     else:
         print('Unknown dataset type', args.dataset_type, 'exiting')
@@ -796,7 +821,8 @@ def train():
         print('Hardcoded train views:', i_train)
     elif args.max_train_views > 0:
         print('Original training views:', i_train)
-        i_train = np.random.choice(i_train, size=args.max_train_views, replace=False)
+        #i_train = np.random.choice(i_train, size=args.max_train_views, replace=False)
+        i_train = i_train[:args.max_train_views]
         print('Subsampled train views:', i_train)
 
     # Load embedding network for rendering losses
@@ -995,6 +1021,7 @@ def train():
                     pose = geometry.interp3(pose1, pose2, pose3, s12, s3)
                 elif args.render_poses == 'uniform':
                     assert args.dataset_type == 'blender'
+                    #raise Exception('pose_spherical_uniform not implemented!')
                     pose = pose_spherical_uniform(args.render_theta_range, args.render_phi_range, args.render_radius_range)
                     pose = pose[:3, :4]
 

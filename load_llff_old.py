@@ -1,8 +1,5 @@
 import numpy as np
 import os, imageio
-from pathlib import Path
-
-import json
 
 
 ########## Slightly modified version of LLFF data loading code 
@@ -65,7 +62,7 @@ def _minify(basedir, factors=[], resolutions=[]):
 def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True):
     
     poses_arr = np.load(os.path.join(basedir, 'poses_bounds.npy'))
-    poses = poses_arr[:, :-2].reshape([-1, 3, 5]).transpose([1,2,0]) # 3 x 5 x N
+    poses = poses_arr[:, :-2].reshape([-1, 3, 5]).transpose([1,2,0])
     bds = poses_arr[:, -2:].transpose([1,0])
     
     img0 = [os.path.join(basedir, 'images', f) for f in sorted(os.listdir(os.path.join(basedir, 'images'))) \
@@ -113,6 +110,7 @@ def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True):
             return imageio.imread(f, ignoregamma=True)
         else:
             return imageio.imread(f)
+        
     imgs = imgs = [imread(f)[...,:3]/255. for f in imgfiles]
     imgs = np.stack(imgs, -1)  
     
@@ -248,22 +246,18 @@ def load_llff_data(basedir, factor=8, recenter=True, bd_factor=.75, spherify=Fal
     poses, bds, imgs = _load_data(basedir, factor=factor) # factor=8 downsamples original imgs by 8x
     print('Loaded', basedir, bds.min(), bds.max())
     
-    # print('poses_bound.npy:\n', poses[:,:,0])
-
     # Correct rotation matrix ordering and move variable dim to axis 0
-    poses = np.concatenate([poses[:, 1:2, :], -poses[:, 0:1, :], poses[:, 2:, :]], 1) # [-u, r, -t] -> [r, u, -t]
+    poses = np.concatenate([poses[:, 1:2, :], -poses[:, 0:1, :], poses[:, 2:, :]], 1)
     poses = np.moveaxis(poses, -1, 0).astype(np.float32)
     imgs = np.moveaxis(imgs, -1, 0).astype(np.float32)
     images = imgs
     bds = np.moveaxis(bds, -1, 0).astype(np.float32)
-    print("bds:", bds[0])
     
     # Rescale if bd_factor is provided
     sc = 1. if bd_factor is None else 1./(bds.min() * bd_factor)
     poses[:,:3,3] *= sc
     bds *= sc
     
-    # print('before recenter:\n', poses[0])
     if recenter:
         poses = recenter_poses(poses)
         
@@ -318,18 +312,8 @@ def load_llff_data(basedir, factor=8, recenter=True, bd_factor=.75, spherify=Fal
     
     images = images.astype(np.float32)
     poses = poses.astype(np.float32)
+
     return images, poses, bds, render_poses, i_test
 
-
-def get_poses(images):
-    poses = []
-    for i in images:
-        R = images[i].qvec2rotmat()
-        t = images[i].tvec.reshape([3,1])
-        bottom = np.array([0,0,0,1.]).reshape([1,4])
-        w2c = np.concatenate([np.concatenate([R, t], 1), bottom], 0)
-        c2w = np.linalg.inv(w2c)
-        poses.append(c2w)
-    return np.array(poses)
 
 

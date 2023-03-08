@@ -33,6 +33,7 @@ def pose_spherical(theta, phi, radius):
     c2w = torch.Tensor(np.array([[-1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]])) @ c2w
     return c2w
 
+
 def pose_spherical_uniform(theta_range, phi_range, radius_range):
     theta = np.random.uniform(*theta_range)
     phi = np.random.uniform(*phi_range)
@@ -40,7 +41,8 @@ def pose_spherical_uniform(theta_range, phi_range, radius_range):
     pose = pose_spherical(theta, phi, radius)
     return pose
 
-def load_blender_data(basedir, half_res=False, testskip=1):
+
+def load_blender_data(basedir, half_res=False, testskip=1, num_render_poses=40):
     splits = ['train', 'val', 'test']
     metas = {}
     for s in splits:
@@ -71,14 +73,6 @@ def load_blender_data(basedir, half_res=False, testskip=1):
     
     i_split = [np.arange(counts[i], counts[i+1]) for i in range(3)]
     
-    #change view index
-    pairs = np.load('./configs/pairs.npy',allow_pickle = True).item()
-    scene = os.path.basename(basedir)
-    i_train = pairs[f'{scene}_train']
-    i_val = pairs[f'{scene}_val']
-    i_test = pairs[f'{scene}_test']
-    i_split = i_train, i_val, i_test
-    
     imgs = np.concatenate(all_imgs, 0)
     poses = np.concatenate(all_poses, 0)
     
@@ -86,7 +80,7 @@ def load_blender_data(basedir, half_res=False, testskip=1):
     camera_angle_x = float(meta['camera_angle_x'])
     focal = .5 * W / np.tan(.5 * camera_angle_x)
     
-    render_poses = torch.stack([pose_spherical(angle, -30.0, 4.0) for angle in np.linspace(-180,180,40+1)[:-1]], 0)
+    render_poses = torch.stack([pose_spherical(angle, -30.0, 4.0) for angle in np.linspace(-180,180,num_render_poses+1)[:-1]], 0)
     
     if half_res:
         H = H//2
@@ -95,7 +89,11 @@ def load_blender_data(basedir, half_res=False, testskip=1):
 
         imgs_half_res = np.zeros((imgs.shape[0], H, W, 4))
         for i, img in enumerate(imgs):
+            # According to the api defined in the link below, the dimension 
+            # should be represented as (W, H).
+            # https://www.tutorialkart.com/opencv/python/opencv-python-resize-image/
             imgs_half_res[i] = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
+            # imgs_half_res[i] = cv2.resize(img, (H, W), interpolation=cv2.INTER_AREA)
         imgs = imgs_half_res
         # imgs = tf.image.resize_area(imgs, [400, 400]).numpy()
 
