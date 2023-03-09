@@ -17,7 +17,7 @@ half_res = False
 max_train_views = 3
 i_log_raw_hist = 50
 i_video = 625000
-N_iters = 20002
+N_iters = 50002
 i_testset = 20000
 
 save_splits = True
